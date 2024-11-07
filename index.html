@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        form label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #555;
+        }
+
+        form input, form select, form button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        form button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #summary {
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        #summary h2 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Attendance Tracker</h1>
+    <form id="attendanceForm">
+        <label for="date">Date:</label>
+        <input type="date" id="date" required>
+        <label for="className">Class Name:</label>
+        <input type="text" id="className" required>
+        <label for="status">Status:</label>
+        <select id="status" required>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+        </select>
+        <button type="submit">Submit</button>
+    </form>
+    <table id="attendanceTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Class Name</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div id="summary"></div>
+
+    <script>
+        const attendanceForm = document.getElementById('attendanceForm');
+        const attendanceTable = document.getElementById('attendanceTable').getElementsByTagName('tbody')[0];
+        const summaryDiv = document.getElementById('summary');
+        let totalClasses = 0;
+        let totalPresent = 0;
+    
+        async function fetchAttendance() {
+            const response = await fetch('http://localhost:3000/attendance');
+            const data = await response.json();
+            totalClasses = data.length;
+            totalPresent = data.filter(record => record.status === 'present').length;
+            data.forEach(record => {
+                const newRow = attendanceTable.insertRow();
+                newRow.insertCell(0).textContent = record.date;
+                newRow.insertCell(1).textContent = record.className;
+                newRow.insertCell(2).textContent = record.status;
+            });
+            updateSummary();
+        }
+    
+        attendanceForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const date = document.getElementById('date').value;
+            const className = document.getElementById('className').value;
+            const status = document.getElementById('status').value;
+    
+            await fetch('http://localhost:3000/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, className, status })
+            });
+    
+            // Update the table dynamically without reloading
+            const newRow = attendanceTable.insertRow();
+            newRow.insertCell(0).textContent = date;
+            newRow.insertCell(1).textContent = className;
+            newRow.insertCell(2).textContent = status;
+    
+            totalClasses++;
+            if (status === 'present') totalPresent++;
+            
+            updateSummary();
+            attendanceForm.reset();
+        });
+    
+        function updateSummary() {
+            const attendancePercentage = ((totalPresent / totalClasses) * 100).toFixed(2);
+            const totalBunked = totalClasses - totalPresent;
+            summaryDiv.innerHTML = `
+                <h2>Summary</h2>
+                <p>Total Classes: ${totalClasses}</p>
+                <p>Classes Attended: ${totalPresent}</p>
+                <p>Classes Bunked: ${totalBunked}</p>
+                <p>Attendance Percentage: ${attendancePercentage}%</p>
+            `;
+        }
+    
+        fetchAttendance(); // Load attendance data when the page loads
+    </script>
+    
+</body>
+</html>
