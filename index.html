@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+            background-color: #1e1e1e;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #bdbdbd;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            background-color: #333;
+            color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #6200ea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #3700b3;
+        }
+
+        .stats {
+            margin-top: 20px;
+            background-color: #2c2c2c;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats div {
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #ffffff;
+            margin-top: 40px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+            text-align: center;
+            /* Center the list items */
+            margin: 0;
+        }
+
+        li {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+
+        li:nth-child(even) {
+            background-color: #444;
+        }
+
+        a {
+            color: #bb86fc;
+        }
+
+        a:hover {
+            color: #3700b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Attendance Tracker</h1>
+    <div class="container">
+        <label for="subject">Enter Subject Name:</label>
+        <input type="text" id="subject" placeholder="e.g. Math, Physics">
+        <label for="attendance">Mark Attendance:</label>
+        <select id="attendance">
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+        </select>
+        <button onclick="recordAttendance()">Record Attendance</button>
+        <div class="stats">
+            <div>Total Classes: <span id="totalClasses">0</span></div>
+            <div>Total Classes Taken: <span id="totalTaken">0</span></div>
+            <div>Percentage: <span id="percentage">0%</span></div>
+        </div>
+        <h2>Attendance Records:</h2>
+        <ul id="attendanceList"></ul>
+    </div>
+    <script>
+        let totalClasses = 0;
+        let totalTaken = 0;
+        let attendanceRecords = [];
+        function recordAttendance() {
+            const subject = document.getElementById('subject').value;
+            const attendanceStatus = document.getElementById('attendance').value;
+            const today = new Date();
+            const date = today.toISOString().split('T')[0];
+
+            if (!subject) {
+                alert("Please enter a subject name.");
+                return;
+            }
+
+            // Send data to the PHP backend
+            const formData = new FormData();
+            formData.append("subject", subject);
+            formData.append("attendance", attendanceStatus);
+            formData.append("date", date);
+
+            fetch("record_attendance.php", {
+                method: "POST",
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        totalClasses++;
+                        if (attendanceStatus === "present") {
+                            totalTaken++;
+                        }
+                        attendanceRecords.push({ subject, attendance: attendanceStatus, date });
+                        displayRecords();
+                        updateStats();
+                    } else {
+                        alert("Failed to record attendance: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+        }
+
+        function displayRecords() {
+            const attendanceList = document.getElementById('attendanceList');
+            attendanceList.innerHTML = '';
+            attendanceRecords.forEach(record => {
+                const li = document.createElement('li');
+                li.textContent = `${record.subject} - ${record.attendance} on ${record.date}`;
+                attendanceList.appendChild(li);
+            });
+        }
+        function updateStats() {
+            const totalTakenElement = document.getElementById('totalTaken');
+            const totalClassesElement = document.getElementById('totalClasses');
+            const percentageElement = document.getElementById('percentage');
+            totalClassesElement.textContent = totalClasses;
+            totalTakenElement.textContent = totalTaken;
+            let percentage = 0;
+            if (totalClasses > 0) {
+                percentage = (totalTaken / totalClasses) * 100;
+            }
+            percentageElement.textContent = percentage.toFixed(2) + '%';
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("fetch_attendance.php")
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(record => {
+                        attendanceRecords.push(record);
+                        totalClasses++;
+                        if (record.attendance === "present") {
+                            totalTaken++;
+                        }
+                    });
+                    displayRecords();
+                    updateStats();
+                })
+                .catch(error => console.error("Error fetching records:", error));
+        });
+
+    </script>
+</body>
+
+</html>
