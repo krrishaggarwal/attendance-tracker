@@ -1,8 +1,10 @@
 <?php
-$servername = "sql306.byethost15.com";
-$username = "b15_37714496";
-$password = "Ka936988";
-$dbname = "b15_37714496_attendance_tracker";
+$servername = "127.0.0.1";
+$username = "root";
+$password = "1111";
+$dbname = "attendance_db";
+
+// Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
 // Check connection
